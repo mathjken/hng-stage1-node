@@ -46,7 +46,10 @@
   <div class="string-list" id="allStrings"></div>
 
   <script>
-    const baseURL = "http://localhost:3000";
+    const baseURL = window.location.hostname.includes("localhost")
+  ? "http://localhost:3000"
+  : "https://hng-stage-1-7f9addce5640.herokuapp.com";
+
 
     async function addString() {
       const value = document.getElementById('addValue').value.trim();
@@ -138,6 +141,7 @@
     // Load all strings on page load
     window.onload = listAllStrings;
   </script>
+  
 
 </body>
 </html>

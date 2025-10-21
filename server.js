@@ -1,13 +1,22 @@
 import express from "express";
 import fs from "fs";
 import crypto from "crypto";
+import cors from "cors";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ✅ Allow CORS for frontend (both local + deployed)
+app.use(cors({
+  origin: ["http://localhost:5500", "https://mathjken.github.io"], // add your GitHub Pages or Netlify domain here
+  methods: ["GET", "POST", "DELETE"],
+  allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.json());
 
 // --- File-based storage setup ---
-const STRINGS_FILE = "strings.json";
+const STRINGS_FILE = "./strings.json";
 let strings = new Map();
 
 // --- Load strings from file ---
@@ -15,7 +24,7 @@ function loadStringsFromFile() {
   try {
     if (fs.existsSync(STRINGS_FILE)) {
       const data = JSON.parse(fs.readFileSync(STRINGS_FILE, "utf8"));
-      strings = new Map(Object.entries(data)); // ✅ Convert plain object to Map
+      strings = new Map(Object.entries(data));
       console.log(`✅ Loaded ${strings.size} strings from file.`);
     } else {
       console.log("⚠️ strings.json not found, starting with empty store.");
@@ -30,15 +39,15 @@ function saveStringsToFile() {
   try {
     const json = Object.fromEntries(strings);
     fs.writeFileSync(STRINGS_FILE, JSON.stringify(json, null, 2));
+    console.log(`💾 Auto-saved ${strings.size} strings to ${STRINGS_FILE}`);
   } catch (err) {
     console.error("❌ Error saving strings:", err);
   }
 }
 
-// --- Initialize ---
 loadStringsFromFile();
 
-// --- Helper to create string object ---
+// --- Helper to analyze string ---
 function analyzeString(value) {
   const length = value.length;
   const is_palindrome = value === value.split("").reverse().join("");
@@ -94,9 +103,7 @@ app.get("/strings/filter-by-natural-language", (req, res) => {
   const { query } = req.query;
 
   if (!query || typeof query !== "string") {
-    return res
-      .status(400)
-      .json({ error: "Missing or invalid 'query' parameter" });
+    return res.status(400).json({ error: "Missing or invalid 'query' parameter" });
   }
 
   const lowerQuery = query.toLowerCase();
@@ -117,37 +124,17 @@ app.get("/strings/filter-by-natural-language", (req, res) => {
   let results = Array.from(strings.values());
 
   if (filters.is_palindrome !== undefined)
-    results = results.filter(
-      (s) => s.properties.is_palindrome === filters.is_palindrome
-    );
-
+    results = results.filter((s) => s.properties.is_palindrome === filters.is_palindrome);
   if (filters.word_count !== undefined)
-    results = results.filter(
-      (s) => s.properties.word_count === filters.word_count
-    );
-
+    results = results.filter((s) => s.properties.word_count === filters.word_count);
   if (filters.min_length !== undefined)
-    results = results.filter(
-      (s) => s.properties.length >= filters.min_length
-    );
-
+    results = results.filter((s) => s.properties.length >= filters.min_length);
   if (filters.max_length !== undefined)
-    results = results.filter(
-      (s) => s.properties.length <= filters.max_length
-    );
-
+    results = results.filter((s) => s.properties.length <= filters.max_length);
   if (filters.contains_character !== undefined)
     results = results.filter((s) =>
-      s.value
-        .toLowerCase()
-        .includes(filters.contains_character.toLowerCase())
+      s.value.toLowerCase().includes(filters.contains_character.toLowerCase())
     );
-
-  if (results.length === 0) {
-    return res
-      .status(404)
-      .json({ error: "No matching strings found.", filters });
-  }
 
   res.json({
     data: results,
@@ -166,5 +153,4 @@ process.on("SIGINT", () => {
   process.exit(0);
 });
 
-// --- Start server ---
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
