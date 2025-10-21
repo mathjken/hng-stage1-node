@@ -1,147 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>String Analyzer Dashboard</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; max-width: 900px; margin: auto; }
-    h1, h2 { margin-top: 30px; }
-    input, button { margin: 5px 0; padding: 6px; font-size: 14px; }
-    pre { background: #f9f9f9; padding: 10px; border-radius: 5px; max-height: 300px; overflow: auto; }
-    .palindrome { color: green; font-weight: bold; }
-    .string-list { margin-top: 10px; }
-    .string-item { margin-bottom: 5px; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>String Analyzer Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+    h1, h2 { margin-top: 30px; }
+    input, button { margin: 5px 0; padding: 8px; font-size: 15px; border-radius: 4px; border: 1px solid #ccc; }
+    button { cursor: pointer; background-color: #007bff; color: white; border: none; }
+    button:hover { opacity: 0.9; }
+    pre { 
+      background: #f9f9f9; 
+      padding: 10px; 
+      border-radius: 5px; 
+      max-height: 200px; /* Reduced max height for better fit */
+      overflow: auto; 
+      margin-bottom: 15px; 
+      white-space: pre-wrap; /* Ensures wrapping for long text */
+      border: 1px solid #eee;
+    }
+    .palindrome { color: green; font-weight: bold; }
+    .string-list { margin-top: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
+    .string-item { margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 4px; }
+    .error-message { color: red; font-weight: bold; display: block; margin-top: 5px;}
+  </style>
 </head>
 <body>
 
-  <h1>String Analyzer Dashboard</h1>
+  <h1>String Analyzer Dashboard</h1>
 
-  <!-- Add String -->
-  <h2>Add String</h2>
-  <input type="text" id="addValue" placeholder="Enter string">
-  <button onclick="addString()">Add</button>
-  <pre id="addResult"></pre>
+  <!-- Add String -->
+  <h2>Add String</h2>
+  <input type="text" id="addValue" placeholder="Enter string">
+  <button onclick="addString()">Add</button>
+  <pre id="addResult">Output/Error will appear here.</pre>
 
-  <!-- Delete String -->
-  <h2>Delete String</h2>
-  <input type="text" id="deleteValue" placeholder="Enter string to delete">
-  <button onclick="deleteString()">Delete</button>
-  <pre id="deleteResult"></pre>
+  <!-- Delete String -->
+  <h2>Delete String</h2>
+  <input type="text" id="deleteValue" placeholder="Enter string to delete">
+  <button onclick="deleteString()" style="background-color: #dc3545;">Delete</button>
+  <pre id="deleteResult">Output/Error will appear here.</pre>
 
-  <!-- Search by Value -->
-  <h2>Search String by Value</h2>
-  <input type="text" id="searchValue" placeholder="Enter string to search">
-  <button onclick="searchString()">Search</button>
-  <pre id="searchResult"></pre>
+  <!-- Search by Value -->
+  <h2>Search String by Value</h2>
+  <input type="text" id="searchValue" placeholder="Enter string to search">
+  <button onclick="searchString()" style="background-color: #28a745;">Search</button>
+  <pre id="searchResult">Output/Error will appear here.</pre>
 
-  <!-- Filter Strings -->
-  <h2>Filter Strings (Natural Language)</h2>
-  <input type="text" id="filterQuery" placeholder="Enter query e.g. all single word palindromic strings">
-  <button onclick="filterStrings()">Filter</button>
-  <pre id="filterResult"></pre>
+  <!-- Filter Strings -->
+  <h2>Filter Strings (Natural Language)</h2>
+  <input type="text" id="filterQuery" placeholder="Enter query e.g. all single word palindromic strings">
+  <button onclick="filterStrings()" style="background-color: #ffc107; color: #333;">Filter</button>
+  <pre id="filterResult">Query interpretation, filtered list, or errors will appear here.</pre>
 
-  <!-- All Strings -->
-  <h2>All Strings</h2>
-  <div class="string-list" id="allStrings"></div>
+  <!-- All Strings -->
+  <h2>All Strings</h2>
+  <div class="string-list" id="allStrings">Loading strings...</div>
 
-  <script>
-    // ✅ Use current origin for backend URL, works on localhost & Heroku
-    const baseURL = window.location.origin;
+  <script>
+    // ✅ Use current origin for backend URL, works on localhost & Heroku
+    const baseURL = window.location.origin;
 
-    async function addString() {
-      const value = document.getElementById('addValue').value.trim();
-      if (!value) return alert('Enter a string to add');
-      try {
-        const res = await fetch(baseURL + '/strings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ value })
-        });
-        const data = await res.json();
-        document.getElementById('addResult').textContent = JSON.stringify(data, null, 2);
-        listAllStrings();
-      } catch(err) {
-        alert("Failed to connect to server. Please check your connection or try again.");
-        console.error(err);
-      }
-    }
+	// --- Utility Functions ---
+	
+	/** Displays a simple error message in a container, replacing current content. */
+	function displayError(message, elementId) {
+		const container = document.getElementById(elementId);
+		// For <pre> tags (Add, Delete, Search, Filter results), we set the content directly.
+		if (container.tagName === 'PRE') {
+			container.textContent = `Error: ${message}`;
+		} else {
+			// For list <div>s (like All Strings), we display the error as HTML.
+			container.innerHTML = `<span class="error-message">${message}</span>`;
+		}
+	}
 
-    async function deleteString() {
-      const value = document.getElementById('deleteValue').value.trim();
-      if (!value) return alert('Enter a string to delete');
-      try {
-        const res = await fetch(baseURL + '/strings/' + encodeURIComponent(value), { method: 'DELETE' });
-        if (res.status === 204) {
-          document.getElementById('deleteResult').textContent = 'Deleted successfully!';
-        } else {
-          const data = await res.json();
-          document.getElementById('deleteResult').textContent = JSON.stringify(data, null, 2);
-        }
-        listAllStrings();
-      } catch(err) {
-        alert("Failed to connect to server. Please check your connection or try again.");
-        console.error(err);
-      }
-    }
+	/** Parses response and displays data or error. */
+	async function handleResponse(res, resultElementId, onSuccess) {
+		const container = document.getElementById(resultElementId);
+		try {
+			// Check for 204 No Content (like successful DELETE)
+			if (res.status === 204) {
+				onSuccess(null);
+				return;
+			}
+			
+			const data = await res.json();
+			if (res.ok) {
+				onSuccess(data);
+			} else {
+				// Backend returned a non-2xx status with an error body
+				// Show full response JSON (which includes the error message)
+				container.textContent = JSON.stringify(data, null, 2); 
+				
+				// We no longer call displayError here to prevent duplicate messages.
+				
+				console.error("Backend Error:", res.status, data);
+			}
+		} catch (err) {
+			// Handle JSON parse error (if server returns non-JSON or is unreachable)
+			displayError("Failed to connect to server or parse response.", resultElementId);
+			console.error("Fetch Error:", err);
+		}
+	}
 
-    async function searchString() {
-      const value = document.getElementById('searchValue').value.trim();
-      if (!value) return alert('Enter a string to search');
-      try {
-        const res = await fetch(baseURL + '/strings/' + encodeURIComponent(value));
-        if (!res.ok) throw new Error('String not found');
-        const data = await res.json();
-        displayStrings([data], 'searchResult');
-      } catch(err) {
-        document.getElementById('searchResult').textContent = err.message;
-      }
-    }
+    /** Renders a list of string objects into a container. */
+    function displayStrings(strings, elementId) {
+      const container = document.getElementById(elementId);
+      container.innerHTML = ''; // Clear previous results
+      
+      // If the target is a <pre> tag, we display the JSON string itself
+      if (container.tagName === 'PRE') {
+        container.textContent = strings ? JSON.stringify(strings, null, 2) : 'No string found.';
+        return;
+      }
 
-    async function filterStrings() {
-      const query = document.getElementById('filterQuery').value.trim();
-      if (!query) return alert('Enter a query to filter');
-      try {
-        const res = await fetch(baseURL + '/strings/filter-by-natural-language?query=' + encodeURIComponent(query));
-        const data = await res.json();
-        displayStrings(data.data, 'filterResult');
-      } catch(err) {
-        alert("Failed to connect to server. Please check your connection or try again.");
-        console.error(err);
-      }
-    }
+      // If the target is a <div> (for lists)
+      if (!strings || strings.length === 0) {
+        container.textContent = 'No strings found.';
+        return;
+      }
+      strings.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'string-item';
+        div.innerHTML = `
+          <span class="${s.properties.is_palindrome ? 'palindrome' : ''}">${s.value}</span>
+          &nbsp;| Length: ${s.properties.length}, Words: ${s.properties.word_count}, Unique chars: ${s.properties.unique_characters}
+        `;
+        container.appendChild(div);
+      });
+    }
 
-    async function listAllStrings() {
-      try {
-        const res = await fetch(baseURL + '/strings');
-        const data = await res.json();
-        displayStrings(data.data, 'allStrings');
-      } catch(err) {
-        console.error("Failed to load all strings:", err);
-      }
-    }
+    // --- API Calls ---
 
-    function displayStrings(strings, elementId) {
-      const container = document.getElementById(elementId);
-      container.innerHTML = '';
-      if (!strings || strings.length === 0) {
-        container.textContent = 'No strings found.';
-        return;
-      }
-      strings.forEach(s => {
-        const div = document.createElement('div');
-        div.className = 'string-item';
-        div.innerHTML = `
-          <span class="${s.properties.is_palindrome ? 'palindrome' : ''}">${s.value}</span>
-          &nbsp;| Length: ${s.properties.length}, Words: ${s.properties.word_count}, Unique chars: ${s.properties.unique_characters}
-        `;
-        container.appendChild(div);
-      });
-    }
+    async function addString() {
+      const value = document.getElementById('addValue').value.trim();
+      const resultElementId = 'addResult';
+      if (!value) return displayError('Please enter a string to add.', resultElementId);
 
-    // Load all strings on page load
-    window.onload = listAllStrings;
-  </script>
+      const res = await fetch(baseURL + '/strings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value })
+      });
+
+      handleResponse(res, resultElementId, (data) => {
+        // Success: Display the detailed JSON analysis
+        document.getElementById(resultElementId).textContent = JSON.stringify(data, null, 2);
+        document.getElementById('addValue').value = ''; // Clear input on success
+        listAllStrings();
+      });
+    }
+
+    async function deleteString() {
+      const value = document.getElementById('deleteValue').value.trim();
+      const resultElementId = 'deleteResult';
+      if (!value) return displayError('Please enter a string to delete.', resultElementId);
+
+      const res = await fetch(baseURL + '/strings/' + encodeURIComponent(value), { method: 'DELETE' });
+
+      handleResponse(res, resultElementId, () => {
+        // Success (204 No Content)
+        document.getElementById(resultElementId).textContent = 'Deleted successfully (204 No Content).';
+        document.getElementById('deleteValue').value = ''; // Clear input on success
+        listAllStrings();
+      });
+    }
+
+    async function searchString() {
+      const value = document.getElementById('searchValue').value.trim();
+      const resultElementId = 'searchResult';
+      if (!value) return displayError('Please enter a string to search.', resultElementId);
+      
+      const res = await fetch(baseURL + '/strings/' + encodeURIComponent(value));
+
+      handleResponse(res, resultElementId, (data) => {
+        // Success: Display the detailed JSON analysis in the PRE tag
+        document.getElementById(resultElementId).textContent = JSON.stringify(data, null, 2);
+      });
+    }
+
+    async function filterStrings() {
+      const query = document.getElementById('filterQuery').value.trim();
+      const resultElementId = 'filterResult';
+      
+      if (!query) return displayError('Please enter a query to filter.', resultElementId);
+
+      document.getElementById(resultElementId).textContent = "Processing query...";
+      
+      const res = await fetch(baseURL + '/strings/filter-by-natural-language?query=' + encodeURIComponent(query));
+      
+      handleResponse(res, resultElementId, (data) => {
+        // Success: First, display the query interpretation JSON
+        const pre = document.getElementById(resultElementId);
+        pre.textContent = `Interpreted Query:\n${JSON.stringify(data.interpreted_query, null, 2)}\n\nFiltered Strings:\n`;
+        
+        // Then, display the list of filtered strings inside the pre tag for simplicity
+        const listHtml = data.data && data.data.length > 0
+          ? data.data.map(s => `  - ${s.value} (Palindrome: ${s.properties.is_palindrome})`).join('\n')
+          : '  - No matching strings found.';
+        
+        pre.textContent += listHtml;
+      });
+    }
+
+    async function listAllStrings() {
+      const resultElementId = 'allStrings';
+      const res = await fetch(baseURL + '/strings');
+
+      handleResponse(res, resultElementId, (data) => {
+        // Success: Display all strings in the dedicated list container
+        displayStrings(data.data, resultElementId);
+      });
+    }
+
+    // Load all strings on page load
+    window.onload = listAllStrings;
+  </script>
 
 </body>
 </html>
