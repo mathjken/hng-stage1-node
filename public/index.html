@@ -46,10 +46,8 @@
   <div class="string-list" id="allStrings"></div>
 
   <script>
-    const baseURL = window.location.hostname.includes("localhost")
-  ? "http://localhost:3000"
-  : "https://hng-stage-1-7f9addce5640.herokuapp.com";
-
+    // ✅ Use current origin for backend URL, works on localhost & Heroku
+    const baseURL = window.location.origin;
 
     async function addString() {
       const value = document.getElementById('addValue').value.trim();
@@ -64,7 +62,8 @@
         document.getElementById('addResult').textContent = JSON.stringify(data, null, 2);
         listAllStrings();
       } catch(err) {
-        alert(err);
+        alert("Failed to connect to server. Please check your connection or try again.");
+        console.error(err);
       }
     }
 
@@ -81,7 +80,8 @@
         }
         listAllStrings();
       } catch(err) {
-        alert(err);
+        alert("Failed to connect to server. Please check your connection or try again.");
+        console.error(err);
       }
     }
 
@@ -106,7 +106,8 @@
         const data = await res.json();
         displayStrings(data.data, 'filterResult');
       } catch(err) {
-        alert(err);
+        alert("Failed to connect to server. Please check your connection or try again.");
+        console.error(err);
       }
     }
 
@@ -116,7 +117,7 @@
         const data = await res.json();
         displayStrings(data.data, 'allStrings');
       } catch(err) {
-        console.error(err);
+        console.error("Failed to load all strings:", err);
       }
     }
 
@@ -141,7 +142,6 @@
     // Load all strings on page load
     window.onload = listAllStrings;
   </script>
-  
 
 </body>
 </html>
