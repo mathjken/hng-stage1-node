@@ -1,18 +1,18 @@
 import express from "express";
-import fs from "fs"; // Kept for reference, but functions are disabled
 import crypto from "crypto";
-import path from "path"; 
-import { fileURLToPath } from "url"; 
+import path from "path";
+import { fileURLToPath } from "url";
+import cors from "cors";
 
 // --- Setup __dirname for ES Modules ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// ------------------------------------
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enable JSON body parsing and serve static files
+// --- Middleware ---
+app.use(cors()); // ✅ Allow browser requests
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -152,7 +152,6 @@ app.get("/strings", (req, res) => {
 });
 
 
-// --- 4. GET /strings/filter-by-natural-language (NATURAL LANGUAGE FILTERING) ---
 // --- 4. GET /strings/filter-by-natural-language (NATURAL LANGUAGE FILTERING) ---
 app.get("/strings/filter-by-natural-language", (req, res) => {
   const { query } = req.query;
