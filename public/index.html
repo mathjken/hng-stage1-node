@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>String Analyzer Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+    h1, h2 { margin-top: 30px; }
+    input, button { margin: 5px 0; padding: 6px; font-size: 14px; }
+    pre { background: #f9f9f9; padding: 10px; border-radius: 5px; max-height: 300px; overflow: auto; }
+    .palindrome { color: green; font-weight: bold; }
+    .string-list { margin-top: 10px; }
+    .string-item { margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+
+  <h1>String Analyzer Dashboard</h1>
+
+  <!-- Add String -->
+  <h2>Add String</h2>
+  <input type="text" id="addValue" placeholder="Enter string">
+  <button onclick="addString()">Add</button>
+  <pre id="addResult"></pre>
+
+  <!-- Delete String -->
+  <h2>Delete String</h2>
+  <input type="text" id="deleteValue" placeholder="Enter string to delete">
+  <button onclick="deleteString()">Delete</button>
+  <pre id="deleteResult"></pre>
+
+  <!-- Search by Value -->
+  <h2>Search String by Value</h2>
+  <input type="text" id="searchValue" placeholder="Enter string to search">
+  <button onclick="searchString()">Search</button>
+  <pre id="searchResult"></pre>
+
+  <!-- Filter Strings -->
+  <h2>Filter Strings (Natural Language)</h2>
+  <input type="text" id="filterQuery" placeholder="Enter query e.g. all single word palindromic strings">
+  <button onclick="filterStrings()">Filter</button>
+  <pre id="filterResult"></pre>
+
+  <!-- All Strings -->
+  <h2>All Strings</h2>
+  <div class="string-list" id="allStrings"></div>
+
+  <script>
+    const baseURL = "http://localhost:3000";
+
+    async function addString() {
+      const value = document.getElementById('addValue').value.trim();
+      if (!value) return alert('Enter a string to add');
+      try {
+        const res = await fetch(baseURL + '/strings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value })
+        });
+        const data = await res.json();
+        document.getElementById('addResult').textContent = JSON.stringify(data, null, 2);
+        listAllStrings();
+      } catch(err) {
+        alert(err);
+      }
+    }
+
+    async function deleteString() {
+      const value = document.getElementById('deleteValue').value.trim();
+      if (!value) return alert('Enter a string to delete');
+      try {
+        const res = await fetch(baseURL + '/strings/' + encodeURIComponent(value), { method: 'DELETE' });
+        if (res.status === 204) {
+          document.getElementById('deleteResult').textContent = 'Deleted successfully!';
+        } else {
+          const data = await res.json();
+          document.getElementById('deleteResult').textContent = JSON.stringify(data, null, 2);
+        }
+        listAllStrings();
+      } catch(err) {
+        alert(err);
+      }
+    }
+
+    async function searchString() {
+      const value = document.getElementById('searchValue').value.trim();
+      if (!value) return alert('Enter a string to search');
+      try {
+        const res = await fetch(baseURL + '/strings/' + encodeURIComponent(value));
+        if (!res.ok) throw new Error('String not found');
+        const data = await res.json();
+        displayStrings([data], 'searchResult');
+      } catch(err) {
+        document.getElementById('searchResult').textContent = err.message;
+      }
+    }
+
+    async function filterStrings() {
+      const query = document.getElementById('filterQuery').value.trim();
+      if (!query) return alert('Enter a query to filter');
+      try {
+        const res = await fetch(baseURL + '/strings/filter-by-natural-language?query=' + encodeURIComponent(query));
+        const data = await res.json();
+        displayStrings(data.data, 'filterResult');
+      } catch(err) {
+        alert(err);
+      }
+    }
+
+    async function listAllStrings() {
+      try {
+        const res = await fetch(baseURL + '/strings');
+        const data = await res.json();
+        displayStrings(data.data, 'allStrings');
+      } catch(err) {
+        console.error(err);
+      }
+    }
+
+    function displayStrings(strings, elementId) {
+      const container = document.getElementById(elementId);
+      container.innerHTML = '';
+      if (!strings || strings.length === 0) {
+        container.textContent = 'No strings found.';
+        return;
+      }
+      strings.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'string-item';
+        div.innerHTML = `
+          <span class="${s.properties.is_palindrome ? 'palindrome' : ''}">${s.value}</span>
+          &nbsp;| Length: ${s.properties.length}, Words: ${s.properties.word_count}, Unique chars: ${s.properties.unique_characters}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // Load all strings on page load
+    window.onload = listAllStrings;
+  </script>
+
+</body>
+</html>

@@ -10,12 +10,21 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "express": "^5.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mathjken/hng-stage1-node.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mathjken/hng-stage1-node/issues"
+  },
+  "homepage": "https://github.com/mathjken/hng-stage1-node#readme",
+  "description": ""
 }

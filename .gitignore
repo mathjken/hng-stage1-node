@@ -1,0 +1,11 @@
+# Node modules folder
+node_modules/
+
+# Persisted data file
+strings.json
+
+# Environment variables
+.env
+
+# Optional: log files
+*.log
